@@ -1,5 +1,26 @@
 # Final Project - DNA Sequence Similarity with Longest Common Subsequence
 
+Make a method with:
+```
+make naive_serial
+```
+Then run with, where you put as input a series of test cases:
+```
+./build/naive_serial --input ./tests/testcase1.txt
+```
+
+Test cases must be of the following form, where you have at least one test case. string1 string2 true_longest_subseqence_length.
+```
+abbbcda abbcdaa 6
+ada ad 2
+gattaca attaca 6
+abcdef abcdef 6
+abcdef ghijkl 0
+```
+
+
+## Project Writeup
+
 While 3 of our team members were working at a longevity-focused health startup, we came across research on aging biomarkers that led us down a rabbit hole of DNA sequencing and its applications. DNA sequence analysis allows geneticists to compare DNA sequences between individuals, looking for patterns that have been preserved across generations. The Longest Common Subsequence (LCS) problem finds the longest sequence of characters that appear in order (though not necessarily consecutively) across multiple strings. LCS algorithms play a crucial role in this, efficiently identifying the longest subsequence of genetic markers that appear in the same order across multiple DNA samples (while still allowing for the discontinuities and variations caused by evolution). This similarity matching helps scientists piece together evolutionary relatedness. The computational challenge of solving the LCS problem, which becomes NP-hard with multiple sequences, caught our attention.
 
 Cornell Professor Guidi directed us toward Vahidi et al.'s implementation of parallel LCS using a grid-based approach in Chapel (https://ieeexplore.ieee.org/document/10363472). Their work demonstrates efficient computation of LCS between two sequences using a two-dimensional grid method. Building on their foundation and using concepts from parallel computing, we want to implement their methods with both MPI and CUDA, as efficiently as possible. We also want to potentially extend their algorithm to handle three sequences simultaneously through a three-dimensional grid implementation, allowing testing for genetic similarity across 3 individuals at once. 
