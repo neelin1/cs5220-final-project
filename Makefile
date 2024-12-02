@@ -1,37 +1,37 @@
-CPP=CC
+CPP = g++
+CFLAGS = -lm
+COPTFLAGS = -O3 -ffast-math
 
-CFLAGS=-lm
-COPTFLAGS=-O3 -ffast-math
+MPIFLAGS = -DMPI -lmpi
+CUDAFLAGS = -DCUDA
 
-MPIFLAGS=-DMPI
+NVCC = nvcc
+NVCCFLAGS =
 
-NVCC=nvcc
-NVCCFLAGS=-DCUDA
-
-PYTHON=python3
-
-all: mpi gpu basic_serial
+all: mpi gpu dp_serial naive_serial openmp
 
 mpi: build/mpi
 gpu: build/gpu
-serial: build/serial
-basic_serial: build/basic_serial
+dp_serial: build/dp_serial
+naive_serial: build/naive_serial
+openmp: build/openmp
 
-build/mpi: common/main.cpp common/scenarios.cpp mpi/mpi.cpp
-	$(CPP) $^ -o $@ $(MPIFLAGS) $(CFLAGS) $(COPTFLAGS)
+build/gpu: common/main.cpp gpu/gpu.cu
+	$(NVCC) $^ -o $@ $(CUDAFLAGS)
 
-build/gpu: common/main.cpp common/scenarios.cpp gpu/gpu.cu
-	$(NVCC) $^ -o $@ $(NVCCFLAGS)
-
-build/serial: common/main.cpp common/scenarios.cpp serial/serial.cpp
-	$(CPP) $^ -o $@ $(CFLAGS) $(COPTFLAGS) -march=native -funroll-loops -floop-parallelize-all -fprefetch-loop-arrays -ftree-vectorize -flto
-
-build/basic_serial: common/main.cpp common/scenarios.cpp serial/basic_serial.cpp
+build/dp_serial: common/main.cpp serial/dp_serial.cpp
 	$(CPP) $^ -o $@ $(CFLAGS) $(COPTFLAGS)
 
-.PHONY: clean
+build/naive_serial: common/main.cpp serial/naive_serial.cpp
+	$(CPP) $^ -o $@ $(CFLAGS) $(COPTFLAGS)
+
+build/mpi: common/main.cpp multithread/mpi.cpp
+	$(CPP) $^ -o $@ $(MPIFLAGS) $(CFLAGS) $(COPTFLAGS)
+
+build/openmp: common/main.cpp multithread/openmp.cpp
+	$(CPP) $^ -o $@ -fopenmp $(CFLAGS) $(COPTFLAGS)
 
 clean:
-	rm -f build/*.out
-	rm -f build/*.o
-	rm -f build/*.gif
+	rm -f build/*
+
+.PHONY: all clean

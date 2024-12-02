@@ -1,0 +1,5 @@
+abbbcda abbcdaa 6
+ada ad 2
+gattaca attaca 6
+abcdef abcdef 6
+abcdef ghijkl 0

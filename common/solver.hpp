@@ -1,7 +1,10 @@
-void init(double *u, double *h, double *v, double length_, double width_, int nx_, int ny_, double H_, double g_, double dt_, int rank_, int num_procs_);
+#ifndef SOLVER_HPP
+#define SOLVER_HPP
 
-void step();
+#include <string>
 
+void init(const std::string &X_input, const std::string &Y_input);
+int compute_lcs();
 void free_memory();
 
-void transfer(double *h);
+#endif // SOLVER_HPP

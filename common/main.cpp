@@ -1,204 +1,93 @@
-#include <stdbool.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <time.h>
-
-#ifdef CUDA
-#include <cuda_runtime.h>
-#endif
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <chrono>
+#include <string>
+#include <cstring>
+#include "solver.hpp"
 
 #ifdef MPI
 #include <mpi.h>
 #endif
 
-#include "scenarios.hpp"
-#include "solver.hpp"
+struct TestCase {
+    std::string X;
+    std::string Y;
+    int expected_lcs_length;
+};
 
-int main(int argc, char **argv)
-{
+void read_test_cases(const std::string &file_path, std::vector<TestCase> &test_cases) {
+    std::ifstream infile(file_path);
+    if (!infile.is_open()) {
+        throw std::runtime_error("Could not open input file: " + file_path);
+    }
 
-    int length = 1.0e7, width = 1.0e7, nx = 256, ny = 258, num_iterations = 1000, save_iter = 20;
-    double depth = 100.0, g = 1.0, r = 2.0e5, max_height = 10.0, dt = 100.0;
+    std::string line;
+    while (std::getline(infile, line)) {
+        std::istringstream iss(line);
+        std::string X, Y;
+        int expected_lcs_length;
 
-    char scenario[256] = "water_drop", output_file[256];
-    bool output = false;
+        if (!(iss >> X >> Y >> expected_lcs_length)) {
+            throw std::runtime_error("Invalid test case format in file.");
+        }
 
-    int rank = 0, num_procs = 1;
+        test_cases.push_back({X, Y, expected_lcs_length});
+    }
+
+    infile.close();
+}
+
+int main(int argc, char **argv) {
+    // Argument parsing
+    std::string input_file;
+    if (argc < 2 || strcmp(argv[1], "--input") != 0 || argc < 3) {
+        std::cerr << "Usage: " << argv[0] << " --input <testcase_file>\n";
+        return 1;
+    }
+    input_file = argv[2];
+
+    // Read test cases
+    std::vector<TestCase> test_cases;
+    try {
+        read_test_cases(input_file, test_cases);
+    } catch (const std::runtime_error &e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return 1;
+    }
 
 #ifdef MPI
     MPI_Init(&argc, &argv);
-    MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 #endif
 
-    int cur_arg = 1;
-    int num_args = argc - 1;
+    for (size_t i = 0; i < test_cases.size(); ++i) {
+        const auto &test = test_cases[i];
+        std::cout << "Running test case " << i + 1 << ": X = " << test.X << " (Len " << test.X.size() << "), Y = " << test.Y << " (Len " << test.X.size() << "), Expected LCS = " << test.expected_lcs_length << std::endl;
 
-    while (num_args > 0)
-    {
-        if (num_args == 1)
-        {
-            fprintf(stderr, "Missing argument value for %s\n", argv[cur_arg]);
-            return 1;
+        // Initialize solver
+        init(test.X, test.Y);
+
+        // Measure execution time
+        auto start_time = std::chrono::high_resolution_clock::now();
+        int computed_lcs_length = compute_lcs();
+        auto end_time = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = end_time - start_time;
+
+        std::cout << "Computed LCS length: " << computed_lcs_length 
+                  << " (Expected: " << test.expected_lcs_length << ")\n";
+        std::cout << "Execution time: " << elapsed.count() << " seconds\n";
+
+        if (computed_lcs_length == test.expected_lcs_length) {
+            std::cout << "Test case " << i + 1 << " passed.\n";
+        } else {
+            std::cout << "Test case " << i + 1 << " failed.\n";
         }
 
-        if (strcmp(argv[cur_arg], "--length") == 0)
-        {
-            length = atoi(argv[cur_arg + 1]);
-        }
-        else if (strcmp(argv[cur_arg], "--width") == 0)
-        {
-            width = atoi(argv[cur_arg + 1]);
-        }
-        else if (strcmp(argv[cur_arg], "--nx") == 0)
-        {
-            nx = atoi(argv[cur_arg + 1]);
-        }
-        else if (strcmp(argv[cur_arg], "--ny") == 0)
-        {
-            ny = atoi(argv[cur_arg + 1]);
-        }
-        else if (strcmp(argv[cur_arg], "--scenario") == 0)
-        {
-            strcpy(scenario, argv[cur_arg + 1]);
-        }
-        else if (strcmp(argv[cur_arg], "--radius") == 0)
-        {
-            r = atof(argv[cur_arg + 1]);
-        }
-        else if (strcmp(argv[cur_arg], "--height") == 0)
-        {
-            max_height = atof(argv[cur_arg + 1]);
-        }
-        else if (strcmp(argv[cur_arg], "--num_iter") == 0)
-        {
-            num_iterations = atoi(argv[cur_arg + 1]);
-        }
-        else if (strcmp(argv[cur_arg], "--output") == 0)
-        {
-            strcpy(output_file, argv[cur_arg + 1]);
-            output = true;
-        }
-        else if (strcmp(argv[cur_arg], "--dt") == 0)
-        {
-            dt = atof(argv[cur_arg + 1]);
-        }
-        else if (strcmp(argv[cur_arg], "--save_iter") == 0)
-        {
-            save_iter = atoi(argv[cur_arg + 1]);
-        }
-        else
-        {
-            fprintf(stderr, "Unknown argument: %s\n", argv[cur_arg]);
-            return 1;
-        }
+        std::cout << "-----------------------------------\n";
 
-        cur_arg += 2;
-        num_args -= 2;
-    }
-
-    double *h = nullptr;
-    double *u = nullptr;
-    double *v = nullptr;
-
-    if (rank == 0)
-    {
-        h = (double *)calloc((nx + 1) * (ny + 1), sizeof(double));
-        u = (double *)calloc((nx + 2) * ny, sizeof(double));
-        v = (double *)calloc(nx * (ny + 2), sizeof(double));
-
-        if (strcmp(scenario, "water_drop") == 0)
-        {
-            water_drop(length, width, nx, ny, r, max_height, h, u, v);
-        }
-        else if (strcmp(scenario, "dam_break") == 0)
-        {
-            dam_break(length, width, nx, ny, r, max_height, h, u, v);
-        }
-        else if (strcmp(scenario, "wave") == 0)
-        {
-            wave(length, width, nx, ny, max_height, h, u, v);
-        }
-        else if (strcmp(scenario, "river") == 0)
-        {
-            river(length, width, nx, ny, max_height, h, u, v);
-        }
-        else
-        {
-            fprintf(stderr, "Unknown scenario: %s\n", scenario);
-            return 1;
-        }
-    }
-
-    clock_t init_start = clock();
-
-    init(h, u, v, length, width, nx, ny, depth, g, dt, rank, num_procs);
-
-    clock_t init_end = clock();
-    fprintf(stderr, "Initialization time for rank %d: %f\n", rank, (double)(init_end - init_start) / CLOCKS_PER_SEC);
-
-    FILE *fptr;
-
-    if (rank == 0 && output)
-    {
-        fptr = fopen(output_file, "w");
-
-        fwrite(&length, sizeof(int), 1, fptr);
-        fwrite(&width, sizeof(int), 1, fptr);
-
-        fwrite(&nx, sizeof(int), 1, fptr);
-        fwrite(&ny, sizeof(int), 1, fptr);
-
-        fwrite(&depth, sizeof(double), 1, fptr);
-        fwrite(&g, sizeof(double), 1, fptr);
-        fwrite(&r, sizeof(double), 1, fptr);
-        fwrite(&max_height, sizeof(double), 1, fptr);
-        fwrite(&dt, sizeof(double), 1, fptr);
-
-        fwrite(&num_iterations, sizeof(int), 1, fptr);
-        fwrite(&save_iter, sizeof(int), 1, fptr);
-    }
-
-    clock_t start = clock();
-
-    for (int i = 0; i < num_iterations; i++)
-    {
-        if (output && i % save_iter == 0)
-        {
-            transfer(h);
-
-            if (rank == 0)
-            {
-                fwrite(h, sizeof(double), (nx + 1) * (ny + 1), fptr);
-            }
-        }
-
-        step();
-    }
-
-#ifdef CUDA
-    cudaDeviceSynchronize();
-#endif
-
-    clock_t end = clock();
-    fprintf(stderr, "Execution time for rank %d: %f\n", rank, (double)(end - start) / CLOCKS_PER_SEC);
-
-    clock_t free_start = clock();
-    free_memory();
-    clock_t free_end = clock();
-    fprintf(stderr, "Free memory time for rank %d: %f\n", rank, (double)(free_end - free_start) / CLOCKS_PER_SEC);
-
-    if (rank == 0)
-    {
-        free(h);
-        free(u);
-        free(v);
-
-        if (output)
-        {
-            fclose(fptr);
-        }
+        // Free resources
+        free_memory();
     }
 
 #ifdef MPI
