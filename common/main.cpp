@@ -40,7 +40,7 @@ void read_test_cases(const std::string &file_path, std::vector<TestCase> &test_c
 }
 
 int main(int argc, char **argv) {
-    // Argument parsing
+    // parse argument
     std::string input_file;
     if (argc < 2 || strcmp(argv[1], "--input") != 0 || argc < 3) {
         std::cerr << "Usage: " << argv[0] << " --input <testcase_file>\n";
@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
     }
     input_file = argv[2];
 
-    // Read test cases
+    // reading in test cases
     std::vector<TestCase> test_cases;
     try {
         read_test_cases(input_file, test_cases);
@@ -65,10 +65,9 @@ int main(int argc, char **argv) {
         const auto &test = test_cases[i];
         std::cout << "Running test case " << i + 1 << ": X = " << test.X << " (Len " << test.X.size() << "), Y = " << test.Y << " (Len " << test.X.size() << "), Expected LCS = " << test.expected_lcs_length << std::endl;
 
-        // Initialize solver
         init(test.X, test.Y);
 
-        // Measure execution time
+        // measuring execution time
         auto start_time = std::chrono::high_resolution_clock::now();
         int computed_lcs_length = compute_lcs();
         auto end_time = std::chrono::high_resolution_clock::now();
@@ -86,7 +85,6 @@ int main(int argc, char **argv) {
 
         std::cout << "-----------------------------------\n";
 
-        // Free resources
         free_memory();
     }
 

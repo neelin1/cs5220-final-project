@@ -10,14 +10,11 @@ NVCCFLAGS =
 
 all: mpi gpu dp_serial naive_serial openmp
 
-mpi: build/mpi
-gpu: build/gpu
 dp_serial: build/dp_serial
 naive_serial: build/naive_serial
-openmp: build/openmp
-
-build/gpu: common/main.cpp gpu/gpu.cu
-	$(NVCC) $^ -o $@ $(CUDAFLAGS)
+grid_openmp: build/dp_openmp
+grid_mpi: build/mpi
+grid_gpu: build/gpu
 
 build/dp_serial: common/main.cpp serial/dp_serial.cpp
 	$(CPP) $^ -o $@ $(CFLAGS) $(COPTFLAGS)
@@ -25,11 +22,14 @@ build/dp_serial: common/main.cpp serial/dp_serial.cpp
 build/naive_serial: common/main.cpp serial/naive_serial.cpp
 	$(CPP) $^ -o $@ $(CFLAGS) $(COPTFLAGS)
 
-build/mpi: common/main.cpp multithread/mpi.cpp
+build/grid_mpi: common/main.cpp multithread/grid_mpi.cpp
 	$(CPP) $^ -o $@ $(MPIFLAGS) $(CFLAGS) $(COPTFLAGS)
 
-build/openmp: common/main.cpp multithread/openmp.cpp
+build/grid_openmp: common/main.cpp multithread/grid_openmp.cpp
 	$(CPP) $^ -o $@ -fopenmp $(CFLAGS) $(COPTFLAGS)
+
+build/grid_gpu: common/main.cpp gpu/grid_gpu.cu
+	$(NVCC) $^ -o $@ $(CUDAFLAGS)
 
 clean:
 	rm -f build/*
