@@ -13,7 +13,7 @@ all: mpi gpu dp_serial naive_serial openmp
 dp_serial: build/dp_serial
 naive_serial: build/naive_serial
 grid_serial: build/grid_serial
-grid_openmp: build/dp_openmp
+grid_openmp: build/grid_openmp
 grid_mpi: build/mpi
 grid_gpu: build/gpu
 
