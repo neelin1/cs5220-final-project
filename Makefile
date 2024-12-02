@@ -12,6 +12,7 @@ all: mpi gpu dp_serial naive_serial openmp
 
 dp_serial: build/dp_serial
 naive_serial: build/naive_serial
+grid_serial: build/grid_serial
 grid_openmp: build/dp_openmp
 grid_mpi: build/mpi
 grid_gpu: build/gpu
@@ -20,6 +21,9 @@ build/dp_serial: common/main.cpp serial/dp_serial.cpp
 	$(CPP) $^ -o $@ $(CFLAGS) $(COPTFLAGS)
 
 build/naive_serial: common/main.cpp serial/naive_serial.cpp
+	$(CPP) $^ -o $@ $(CFLAGS) $(COPTFLAGS)
+
+build/grid_serial: common/main.cpp serial/grid_serial.cpp
 	$(CPP) $^ -o $@ $(CFLAGS) $(COPTFLAGS)
 
 build/grid_mpi: common/main.cpp multithread/grid_mpi.cpp
