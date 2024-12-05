@@ -15,7 +15,7 @@ naive_serial: build/naive_serial
 grid_serial: build/grid_serial
 grid_openmp: build/grid_openmp
 grid_mpi: build/mpi
-grid_gpu: build/gpu
+grid_gpu: build/grid_gpu
 
 build/dp_serial: common/main.cpp serial/dp_serial.cpp
 	$(CPP) $^ -o $@ $(CFLAGS) $(COPTFLAGS)
