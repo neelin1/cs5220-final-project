@@ -25,7 +25,10 @@ build/dp_serial: common/main.cpp serial/dp_serial.cpp
 build/naive_serial: common/main.cpp serial/naive_serial.cpp
 	$(CPP) $^ -o $@ $(CFLAGS) $(COPTFLAGS)
 
-build/grid_mpi: common/main.cpp multithread/grid_mpi.cpp
+build/wavefront_serial: common/main.cpp serial/wavefront_serial.cpp
+	$(CPP) $^ -o $@ $(CFLAGS) $(COPTFLAGS)
+
+build/grid_mpi: common/main.cpp multithread/grid_rowwise_mpi.cpp
 	mpic++ $^ -o $@ -std=c++11 $(MPIFLAGS) $(CFLAGS) $(COPTFLAGS)
 
 build/wavefront_openmp: common/main.cpp multithread/wavefront_openmp.cpp
