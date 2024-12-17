@@ -40,16 +40,16 @@ void read_test_cases(const std::string &file_path, std::vector<TestCase> &test_c
 }
 
 int main(int argc, char **argv) {
-    // parse argument
     std::string input_file;
+
     if (argc < 2 || strcmp(argv[1], "--input") != 0 || argc < 3) {
         std::cerr << "Usage: " << argv[0] << " --input <testcase_file>\n";
         return 1;
     }
     input_file = argv[2];
 
-    // reading in test cases
     std::vector<TestCase> test_cases;
+
     try {
         read_test_cases(input_file, test_cases);
     } catch (const std::runtime_error &e) {
@@ -57,17 +57,24 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    // Initialize MPI at the very start
 #ifdef MPI
     MPI_Init(&argc, &argv);
+    std::cout << "MPI is enabled." << std::endl;
+#else
+    std::cout << "MPI is NOT enabled." << std::endl;
 #endif
+
 
     for (size_t i = 0; i < test_cases.size(); ++i) {
         const auto &test = test_cases[i];
-        std::cout << "Running test case " << i + 1 << ": X = " << test.X << " (Len " << test.X.size() << "), Y = " << test.Y << " (Len " << test.X.size() << "), Expected LCS = " << test.expected_lcs_length << std::endl;
+        std::cout << "Running test case " << i + 1 << ": X = " << test.X 
+                  << " (Len " << test.X.size() << "), Y = " << test.Y 
+                  << " (Len " << test.Y.size() << "), Expected LCS = " 
+                  << test.expected_lcs_length << std::endl;
 
         init(test.X, test.Y);
 
-        // measuring execution time
         auto start_time = std::chrono::high_resolution_clock::now();
         int computed_lcs_length = compute_lcs();
         auto end_time = std::chrono::high_resolution_clock::now();
@@ -84,12 +91,12 @@ int main(int argc, char **argv) {
         }
 
         std::cout << "-----------------------------------\n";
-
-        free_memory();
     }
 
+    free_memory();
+
 #ifdef MPI
-    MPI_Finalize();
+    MPI_Finalize();  // Finalize MPI here
 #endif
 
     return 0;

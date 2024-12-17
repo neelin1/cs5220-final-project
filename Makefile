@@ -29,7 +29,7 @@ build/wavefront_serial: common/main.cpp serial/wavefront_serial.cpp
 	$(CPP) $^ -o $@ $(CFLAGS) $(COPTFLAGS)
 
 build/grid_mpi: common/main.cpp multithread/grid_mpi.cpp
-	$(CPP) $^ -o $@ $(MPIFLAGS) $(CFLAGS) $(COPTFLAGS)
+	mpic++ $^ -o $@ -std=c++11 $(MPIFLAGS) $(CFLAGS) $(COPTFLAGS)
 
 build/wavefront_openmp: common/main.cpp multithread/wavefront_openmp.cpp
 	$(CPP) $^ -o $@ -fopenmp $(CFLAGS) $(COPTFLAGS)
