@@ -71,18 +71,18 @@ int compute_lcs() {
         char x_c = X_global[i - 1];
         int x_idx = char2idx(x_c);
 
-        // OpenMP parallel loop
         #pragma omp parallel for schedule(static) default(shared)
         for (size_t j = 1; j <= m; j++) {
-            char y_c = Y_global[j - 1];              // Local variable
-            int prev_occ = P[x_idx][j];             // Local variable
-            int val_not_match, val_match_before;    // Local variables
+            // need to be local
+            char y_c = Y_global[j - 1];
+            int prev_occ = P[x_idx][j];
+            int val_not_match, val_match_before;
 
             if (x_c == y_c) {
-                // Match
+                // match
                 dp_table[curr][j] = dp_table[prev][j - 1] + 1;
             } else {
-                // No match
+                // no match
                 if (prev_occ == 0) {
                     dp_table[curr][j] = std::max(dp_table[prev][j], 0);
                 } else {
@@ -93,7 +93,6 @@ int compute_lcs() {
             }
         }
 
-        // Swap current and previous DP rows
         std::swap(curr, prev);
     }
 
