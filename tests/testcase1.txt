@@ -1,5 +1,5 @@
-abbbcda abbcdaa 6
-ada ad 2
-gattaca attaca 6
-abcdef abcdef 6
-abcdef ghijkl 0
+AGGGCTA AGGCTAA 6
+ATA AT 2
+GATTACA ATTACA 6
+AAAAA CCCCC 0
+A AAAAA 1

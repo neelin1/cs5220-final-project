@@ -9,13 +9,13 @@ Then run with, where you put as input a series of test cases:
 ./build/naive_serial --input ./tests/testcase1.txt
 ```
 
-Test cases must be of the following form, where you have at least one test case. string1 string2 true_longest_subseqence_length.
+Test cases must be of the following form, where you have at least one test case. string1 string2 true_longest_subseqence_length. Test case cases can only consist of the characters CGATXYZ
 ```
-abbbcda abbcdaa 6
-ada ad 2
-gattaca attaca 6
-abcdef abcdef 6
-abcdef ghijkl 0
+AGGGCTA AGGCTAA 6
+ATA AT 2
+GATTACA ATTACA 6
+AAAAA CCCCC 0
+A AAAAA 1
 ```
 
 
