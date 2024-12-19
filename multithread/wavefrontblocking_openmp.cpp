@@ -5,7 +5,7 @@
 #include <omp.h>
 #include <cmath>
 
-#define BLOCK_SIZE 32
+#define BLOCK_SIZE 64
 
 static std::string X_global;
 static std::string Y_global;
