@@ -4,7 +4,7 @@ import tempfile
 import os
 import random
 import string
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 def generate_random_sequence(length):
     # Generate a random sequence of uppercase letters
@@ -45,9 +45,14 @@ def main():
     lengths = range(args.min_length, args.max_length + 1, args.step)
     avg_times = []
 
-    temp_dir = tempfile.mkdtemp(prefix="lcs_tests_")
+    # Before the main loop, define an empty list to store coordinates
+    coordinates = []
+
+    temp_dir = None
 
     try:
+        # Create temporary directory for test cases
+        temp_dir = tempfile.mkdtemp(prefix="lcs_tests_")
         for length in lengths:
             times = []
             for _ in range(args.trials):
@@ -56,7 +61,6 @@ def main():
                 Y = generate_random_sequence(length)
 
                 test_file = os.path.join(temp_dir, f"test_{length}.txt")
-                # Using expected LCS length as 0 (not essential for timing)
                 write_test_case(test_file, X, Y, expected=0)
 
                 # Run the model
@@ -74,12 +78,14 @@ def main():
                     times.append(float('nan'))
 
             # Compute average time over trials
-            if times:
-                avg_time = sum(times) / len(times)
-            else:
-                avg_time = float('nan')
+            avg_time = sum(times) / len(times) if times else float('nan')
             avg_times.append(avg_time)
+
+            # Add coordinate to the list
+            coordinates.append((length, avg_time))
             print(f"Length={length}, Average execution time={avg_time} seconds")
+            print(f"Coordinate: ({length}, {avg_time})")
+
 
     finally:
         # Cleanup temporary files
@@ -87,16 +93,22 @@ def main():
             os.remove(os.path.join(temp_dir, f))
         os.rmdir(temp_dir)
 
+    # Print all (x, y) coordinates
+    print("Collected Coordinates (Sequence Length, Execution Time):")
+    for coord in coordinates:
+        print(coord)
+
     # Plotting
-    plt.figure(figsize=(10,6))
-    plt.plot(list(lengths), avg_times, marker='o')
-    plt.title("LCS Execution Time vs Sequence Length")
-    plt.xlabel("Sequence Length")
-    plt.ylabel("Execution Time (seconds)")
-    plt.grid(True)
-    plt.savefig(args.output_file)
-    plt.close()
-    print(f"Plot saved as {args.output_file}")
+    # plt.figure(figsize=(10,6))
+    # plt.plot(list(lengths), avg_times, marker='o')
+    # plt.title("LCS Execution Time vs Sequence Length")
+    # plt.xlabel("Sequence Length")
+    # plt.ylabel("Execution Time (seconds)")
+    # plt.grid(True)
+    # plt.savefig(args.output_file)
+    # plt.close()
+    # print(f"Plot saved as {args.output_file}")
+
 
 if __name__ == "__main__":
     main()
