@@ -1,18 +1,18 @@
 #include <mpi.h>
 #include <string>
 #include <vector>
-#include <algorithm>
 #include <iostream>
+#include <algorithm>
+#include <cstring>
 
 static std::string X_global;
 static std::string Y_global;
 static std::vector<std::vector<int>> P;
-static std::vector<int> dp_local;
-static std::vector<int> dp_prev;
+static std::vector<int> dp_prev; 
+static std::vector<int> dp_curr;
 
-static int rank, size; // MPI rank and size
-static int chunk_start, chunk_end; // Chunk boundaries for this process
-static int local_chunk_size;
+static int rank_world;
+static int size_world;
 
 inline int char2idx(char c) {
     if (c >= 'A' && c <= 'Z') {
@@ -24,10 +24,9 @@ inline int char2idx(char c) {
     }
 }
 
-void build_P(const std::string &Y) {
+static void build_P(const std::string &Y) {
     const int ALPHABET_SIZE = 52;
     size_t m = Y.size();
-
     P.assign(ALPHABET_SIZE, std::vector<int>(m + 1, 0));
     std::vector<int> last_occ(ALPHABET_SIZE, 0);
 
@@ -36,7 +35,6 @@ void build_P(const std::string &Y) {
         if (idx >= 0) {
             last_occ[idx] = j;
         }
-
         for (int c = 0; c < ALPHABET_SIZE; c++) {
             P[c][j] = last_occ[c];
         }
@@ -44,90 +42,101 @@ void build_P(const std::string &Y) {
 }
 
 void init(const std::string &X_input, const std::string &Y_input) {
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-
-    X_global = X_input;
-    Y_global = Y_input;
-
-    if (rank == 0) {
-        build_P(Y_global);
+    int mpi_initialized;
+    MPI_Initialized(&mpi_initialized);
+    if (!mpi_initialized) {
+        MPI_Init(NULL, NULL);
     }
 
-    // Broadcast the P table to all processes
-    const int ALPHABET_SIZE = 52;
-    size_t m = Y_global.size();
-    if (rank != 0) {
-        P.assign(ALPHABET_SIZE, std::vector<int>(m + 1, 0));
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank_world);
+    MPI_Comm_size(MPI_COMM_WORLD, &size_world);
+
+    if (rank_world == 0) {
+        X_global = X_input;
+        Y_global = Y_input;
     }
 
-    for (int c = 0; c < ALPHABET_SIZE; c++) {
-        MPI_Bcast(P[c].data(), m + 1, MPI_INT, 0, MPI_COMM_WORLD);
+    int n, m;
+    if (rank_world == 0) {
+        n = (int)X_global.size();
+        m = (int)Y_global.size();
+    }
+    MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&m, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+    X_global.resize(n);
+    Y_global.resize(m);
+    MPI_Bcast(&X_global[0], n, MPI_CHAR, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&Y_global[0], m, MPI_CHAR, 0, MPI_COMM_WORLD);
+
+    for (char c : X_global) {
+        if (char2idx(c) < 0) {
+            if (rank_world == 0) {
+                std::cerr << "Error: X contains invalid character: " << c << std::endl;
+            }
+            MPI_Abort(MPI_COMM_WORLD, 1);
+        }
+    }
+    for (char c : Y_global) {
+        if (char2idx(c) < 0) {
+            if (rank_world == 0) {
+                std::cerr << "Error: Y contains invalid character: " << c << std::endl;
+            }
+            MPI_Abort(MPI_COMM_WORLD, 1);
+        }
     }
 
-    // Divide Y into chunks
-    size_t n = X_global.size();
-    size_t global_chunk_size = (Y_global.size() + size - 1) / size; // Ceiling division
-    chunk_start = rank * global_chunk_size;
-    chunk_end = std::min(static_cast<size_t>((rank + 1) * global_chunk_size), Y_global.size());
-    local_chunk_size = chunk_end - chunk_start;
+    build_P(Y_global);
 
-    dp_local.resize(local_chunk_size + 1, 0);
-    dp_prev.resize(local_chunk_size + 1, 0);
+    dp_prev.assign(m + 1, 0);
+    dp_curr.assign(m + 1, 0);
 }
 
 int compute_lcs() {
-    size_t n = X_global.size();
-    size_t m = Y_global.size();
+    int n = (int)X_global.size();
+    int m = (int)Y_global.size();
 
     if (n == 0 || m == 0) return 0;
 
-    for (size_t i = 1; i <= n; i++) {
+    int base = m / size_world;  
+    int remainder = m % size_world;
+    int cols_for_this_rank = base + (rank_world < remainder ? 1 : 0);
+
+    int start_col = 1;
+    for (int r = 0; r < rank_world; r++) {
+        start_col += base + (r < remainder ? 1 : 0);
+    }
+    int end_col = start_col + cols_for_this_rank - 1;
+
+    for (int i = 1; i <= n; i++) {
         char x_c = X_global[i - 1];
         int x_idx = char2idx(x_c);
 
-        // Communicate boundary values with neighbors
-        int left_boundary = (chunk_start > 0) ? dp_prev[0] : 0;
-        int right_boundary = (chunk_end < m) ? dp_prev[local_chunk_size] : 0;
-        if (rank > 0) {
-            MPI_Sendrecv(&dp_prev[1], 1, MPI_INT, rank - 1, 0,
-                         &left_boundary, 1, MPI_INT, rank - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        }
-        if (rank < size - 1) {
-            MPI_Sendrecv(&dp_prev[local_chunk_size], 1, MPI_INT, rank + 1, 0,
-                         &right_boundary, 1, MPI_INT, rank + 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        }
-
-        // Compute current row locally
-        for (size_t j = 0; j < local_chunk_size; j++) {
-            int global_j = chunk_start + j + 1;
-            if (x_c == Y_global[global_j - 1]) {
-                dp_local[j + 1] = dp_prev[j] + 1;
+        for (int j = start_col; j <= end_col; j++) {
+            char y_c = Y_global[j - 1];
+            if (x_c == y_c) {
+                dp_curr[j] = dp_prev[j - 1] + 1;
             } else {
-                int prev_occ = P[x_idx][global_j];
-                int val_not_match = dp_prev[j + 1];
-                int val_match_before = (prev_occ > 0) ? dp_prev[prev_occ - chunk_start] + 1 : 0;
-                dp_local[j + 1] = std::max(val_not_match, val_match_before);
+                int prev_occ = P[x_idx][j];
+                int val_not_match = dp_prev[j];
+                int val_match_before = (prev_occ > 0) ? (dp_prev[prev_occ - 1] + 1) : 0;
+                dp_curr[j] = std::max(val_match_before, val_not_match);
             }
         }
 
-        // Update dp_prev for the next iteration
-        dp_prev = dp_local;
+        MPI_Allgather(MPI_IN_PLACE, cols_for_this_rank, MPI_INT,
+                      &dp_curr[1], cols_for_this_rank, MPI_INT, MPI_COMM_WORLD);
+
+        dp_prev.swap(dp_curr);
     }
 
-    // Gather results from all processes
-    int local_result = dp_local[local_chunk_size];
-    int global_result = 0;
-    MPI_Reduce(&local_result, &global_result, 1, MPI_INT, MPI_MAX, 0, MPI_COMM_WORLD);
-
-    return global_result;
+    int lcs_len = dp_prev[m];
+    return lcs_len;
 }
 
 void free_memory() {
-    dp_local.clear();
-    dp_local.shrink_to_fit();
     dp_prev.clear();
-    dp_prev.shrink_to_fit();
+    dp_curr.clear();
     P.clear();
-    P.shrink_to_fit();
 }
+
