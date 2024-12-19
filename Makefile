@@ -6,7 +6,7 @@ MPIFLAGS = -DMPI -lmpi
 CUDAFLAGS = -DCUDA
 
 NVCC = nvcc
-NVCCFLAGS =
+NVCCFLAGS = -O3 --use_fast_math -arch=sm_86
 
 all: dp_serial naive_serial wavefront_openmp wavefront_serial grid_mpi	grid_gpu
 
@@ -18,6 +18,7 @@ prefixsum_openmp: build/prefixsum_openmp
 grid_openmp: build/grid_openmp
 grid_mpi: build/mpi
 wavefront_mpi: build/wavefront_mpi
+grid_mpi: build/grid_mpi
 grid_gpu: build/grid_gpu
 wavefront_gpu: build/wavefront_gpu
 
@@ -31,7 +32,7 @@ build/naive_serial: common/main.cpp serial/naive_serial.cpp
 build/wavefront_serial: common/main.cpp serial/wavefront_serial.cpp
 	$(CPP) $^ -o $@ $(CFLAGS) $(COPTFLAGS)
 
-build/grid_mpi: common/main.cpp multithread/grid_rowwise_mpi.cpp
+build/grid_mpi: common/main.cpp multithread/grid_mpi.cpp
 	mpic++ $^ -o $@ -std=c++11 $(MPIFLAGS) $(CFLAGS) $(COPTFLAGS)
 
 
@@ -51,10 +52,10 @@ build/prefixsum_openmp: common/main.cpp multithread/prefixsum_openmp.cpp
 	$(CPP) $^ -o $@ -fopenmp $(CFLAGS) $(COPTFLAGS)
 
 build/grid_gpu: common/main.cpp gpu/grid_gpu.cu
-	$(NVCC) $^ -o $@ $(CUDAFLAGS)
+	$(NVCC) $^ -o $@ $(NVCCFLAGS) $(CUDAFLAGS)
 
 build/wavefront_gpu: common/main.cpp gpu/wavefront_gpu.cu
-	$(NVCC) $^ -o $@ $(CUDAFLAGS)
+	$(NVCC) $^ -o $@ $(NVCCFLAGS) $(CUDAFLAGS)
 
 clean:
 	rm -f build/*
