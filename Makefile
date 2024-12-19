@@ -1,6 +1,6 @@
 CPP = g++
 CFLAGS = -lm
-COPTFLAGS = -O3 -ffast-math
+COPTFLAGS = -O3 -ffast-math -fopenmp
 
 MPIFLAGS = -DMPI -lmpi
 CUDAFLAGS = -DCUDA
@@ -8,7 +8,7 @@ CUDAFLAGS = -DCUDA
 NVCC = nvcc
 NVCCFLAGS = -O3 --use_fast_math -arch=sm_86
 
-all: dp_serial naive_serial wavefront_openmp wavefront_serial grid_mpi	grid_gpu
+all: dp_serial naive_serial wavefront_openmp wavefront_serial wavefrontblocking_openmp prefixsum_openmp grid_openmp wavefront_mpi grid_mpi grid_gpu wavefront_gpu
 
 dp_serial: build/dp_serial
 naive_serial: build/naive_serial
@@ -16,7 +16,6 @@ wavefront_openmp: build/wavefront_openmp
 wavefrontblocking_openmp: build/wavefrontblocking_openmp
 prefixsum_openmp: build/prefixsum_openmp
 grid_openmp: build/grid_openmp
-grid_mpi: build/mpi
 wavefront_mpi: build/wavefront_mpi
 grid_mpi: build/grid_mpi
 grid_gpu: build/grid_gpu
