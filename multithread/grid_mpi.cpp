@@ -69,7 +69,7 @@ void init(const std::string &X_input, const std::string &Y_input) {
     size_t n = X_global.size();
     size_t global_chunk_size = (Y_global.size() + size - 1) / size; // Ceiling division
     chunk_start = rank * global_chunk_size;
-    chunk_end = std::min((rank + 1) * global_chunk_size, (int)Y_global.size());
+    chunk_end = std::min(static_cast<size_t>((rank + 1) * global_chunk_size), Y_global.size());
     local_chunk_size = chunk_end - chunk_start;
 
     dp_local.resize(local_chunk_size + 1, 0);

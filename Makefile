@@ -16,7 +16,7 @@ wavefront_openmp: build/wavefront_openmp
 wavefrontblocking_openmp: build/wavefrontblocking_openmp
 prefixsum_openmp: build/prefixsum_openmp
 grid_openmp: build/grid_openmp
-grid_mpi: build/mpi
+grid_mpi: build/grid_mpi
 grid_gpu: build/grid_gpu
 wavefront_gpu: build/wavefront_gpu
 
@@ -30,7 +30,7 @@ build/naive_serial: common/main.cpp serial/naive_serial.cpp
 build/wavefront_serial: common/main.cpp serial/wavefront_serial.cpp
 	$(CPP) $^ -o $@ $(CFLAGS) $(COPTFLAGS)
 
-build/grid_mpi: common/main.cpp multithread/grid_rowwise_mpi.cpp
+build/grid_mpi: common/main.cpp multithread/grid_mpi.cpp
 	mpic++ $^ -o $@ -std=c++11 $(MPIFLAGS) $(CFLAGS) $(COPTFLAGS)
 
 build/wavefront_openmp: common/main.cpp multithread/wavefront_openmp.cpp
