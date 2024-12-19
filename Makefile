@@ -18,6 +18,8 @@ prefixsum_openmp: build/prefixsum_openmp
 grid_openmp: build/grid_openmp
 grid_mpi: build/mpi
 grid_gpu: build/grid_gpu
+wavefront_gpu: build/wavefront_gpu
+
 
 build/dp_serial: common/main.cpp serial/dp_serial.cpp
 	$(CPP) $^ -o $@ $(CFLAGS) $(COPTFLAGS)
@@ -44,6 +46,9 @@ build/prefixsum_openmp: common/main.cpp multithread/prefixsum_openmp.cpp
 	$(CPP) $^ -o $@ -fopenmp $(CFLAGS) $(COPTFLAGS)
 
 build/grid_gpu: common/main.cpp gpu/grid_gpu.cu
+	$(NVCC) $^ -o $@ $(CUDAFLAGS)
+
+build/wavefront_gpu: common/main.cpp gpu/wavefront_gpu.cu
 	$(NVCC) $^ -o $@ $(CUDAFLAGS)
 
 clean:
