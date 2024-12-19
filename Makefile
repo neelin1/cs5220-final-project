@@ -6,7 +6,7 @@ MPIFLAGS = -DMPI -lmpi
 CUDAFLAGS = -DCUDA
 
 NVCC = nvcc
-NVCCFLAGS =
+NVCCFLAGS = -O3 --use_fast_math -arch=sm_86
 
 all: dp_serial naive_serial wavefront_openmp wavefront_serial grid_mpi	grid_gpu
 
@@ -46,10 +46,10 @@ build/prefixsum_openmp: common/main.cpp multithread/prefixsum_openmp.cpp
 	$(CPP) $^ -o $@ -fopenmp $(CFLAGS) $(COPTFLAGS)
 
 build/grid_gpu: common/main.cpp gpu/grid_gpu.cu
-	$(NVCC) $^ -o $@ $(CUDAFLAGS)
+	$(NVCC) $^ -o $@ $(NVCCFLAGS) $(CUDAFLAGS)
 
 build/wavefront_gpu: common/main.cpp gpu/wavefront_gpu.cu
-	$(NVCC) $^ -o $@ $(CUDAFLAGS)
+	$(NVCC) $^ -o $@ $(NVCCFLAGS) $(CUDAFLAGS)
 
 clean:
 	rm -f build/*
