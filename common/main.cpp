@@ -29,8 +29,9 @@ void read_test_cases(const std::string &file_path, std::vector<TestCase> &test_c
         std::string X, Y;
         int expected_lcs_length;
 
+        // Expecting: X Y expected_length
         if (!(iss >> X >> Y >> expected_lcs_length)) {
-            throw std::runtime_error("Invalid test case format in file.");
+            throw std::runtime_error("Invalid test case format in file: " + file_path);
         }
 
         test_cases.push_back({X, Y, expected_lcs_length});
@@ -53,11 +54,10 @@ int main(int argc, char **argv) {
     try {
         read_test_cases(input_file, test_cases);
     } catch (const std::runtime_error &e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+        std::cerr << "Error reading test cases: " << e.what() << std::endl;
         return 1;
     }
 
-    // Initialize MPI at the very start
 #ifdef MPI
     MPI_Init(&argc, &argv);
     std::cout << "MPI is enabled." << std::endl;
@@ -65,15 +65,19 @@ int main(int argc, char **argv) {
     std::cout << "MPI is NOT enabled." << std::endl;
 #endif
 
-
     for (size_t i = 0; i < test_cases.size(); ++i) {
         const auto &test = test_cases[i];
-        std::cout << "Running test case " << i + 1 << ": X = " << test.X 
-                  << " (Len " << test.X.size() << "), Y = " << test.Y 
-                  << " (Len " << test.Y.size() << "), Expected LCS = " 
-                  << test.expected_lcs_length << std::endl;
+        std::cout << "Running test case " << i + 1 << ":\n"
+                  << "  X = " << test.X << " (Len " << test.X.size() << ")\n"
+                  << "  Y = " << test.Y << " (Len " << test.Y.size() << ")\n"
+                  << "  Z (same as Y) = " << test.Y << " (Len " << test.Y.size() << ")\n"
+                  << "  Expected LCS length = " << test.expected_lcs_length << "\n";
 
-        init(test.X, test.Y);
+        // Since we only have two sequences in the file, let's use Y as Z
+        std::string Z = test.Y;
+
+        // Initialize the sequences in the solver
+        init(test.X, test.Y, Z);
 
         auto start_time = std::chrono::high_resolution_clock::now();
         int computed_lcs_length = compute_lcs();
@@ -96,7 +100,7 @@ int main(int argc, char **argv) {
     free_memory();
 
 #ifdef MPI
-    MPI_Finalize();  // Finalize MPI here
+    MPI_Finalize();
 #endif
 
     return 0;

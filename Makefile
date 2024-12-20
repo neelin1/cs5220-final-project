@@ -37,7 +37,7 @@ build/grid_mpi: common/main.cpp multithread/grid_mpi.cpp
 
 
 build/wavefront_mpi: common/main.cpp multithread/wavefront_mpi.cpp
-	mpic++ $^ -o $@ -std=c++11 $(MPIFLAGS) $(CFLAGS) $(COPTFLAGS)
+	CC $^ -o $@ -std=c++11 $(MPIFLAGS) $(CFLAGS) $(COPTFLAGS)
 
 build/wavefront_openmp: common/main.cpp multithread/wavefront_openmp.cpp
 	$(CPP) $^ -o $@ -fopenmp $(CFLAGS) $(COPTFLAGS)
